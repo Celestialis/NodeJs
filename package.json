@@ -1,0 +1,25 @@
+{
+  "name": "lesson1",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "prime": "node prime.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "keywords": [],
+  "dependencies": {
+    "colors": "^1.4.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Celestialis/NodeJs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Celestialis/NodeJs/issues"
+  },
+  "homepage": "https://github.com/Celestialis/NodeJs#readme",
+  "description": ""
+}
