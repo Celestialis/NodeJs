@@ -1,49 +1,35 @@
-require('colors')
-
-const Colors = {GREEN : 0, YELLOW: 1, RED : 2}
-
-let currentColor = Colors.GREEN;
-const firstNumber = process.argv[2];
-const secondNumber = process.argv[3];
-let noPrimeNumber = true;
-
-if(isNaN(firstNumber) || isNaN(secondNumber)){
-    console.log('Incorrect start parameters'.red);
-    return;
-}
-
-const isPrimeNumber = (num) => {
-    if (num <= 1)
-        return false;
-    for(let i = 2; i < num; i++)
-        if(num % i === 0) return false;
-    return true;
-}
-const changeColor = () => {
-    currentColor++;
-    if (currentColor > Colors.RED)
-        currentColor = Colors.GREEN;
-}
-
-const colorPrint = (num) => {
-    if(noPrimeNumber) noPrimeNumber = false;
-    switch (currentColor){
-        case Colors.RED:
-            console.log(`${num}`.red);
-            break;
-        case Colors.GREEN:
-            console.log(`${num}`.green);
-            break;
-        case Colors.YELLOW:
-            console.log(`${num}`.yellow);
-            break;
-    }
-    changeColor();
-}
-
-for (let i = firstNumber; i <= secondNumber; i++){
-    if (isPrimeNumber(i)) colorPrint(i);
-}
-
-if(noPrimeNumber)
-    console.log(`There are no primes in this range[${firstNumber},${secondNumber}]`.red);
+// минуты-часы-число-месяц-год
+let arrDateArgv = process.argv[2].split('-');
+let arrDate = {
+  minute: arrDateArgv[0],
+  hour: arrDateArgv[1],
+  day: arrDateArgv[2],
+  month: arrDateArgv[3],
+  year: arrDateArgv[4],
+};
+const interval = setInterval(() => {
+  const now = new Date() - new Date().getTimezoneOffset() * 60 * 1000;
+  const target = new Date(
+    arrDate['year'],
+    arrDate['month'],
+    arrDate['day'],
+    arrDate['hour'],
+    arrDate['minute'],
+  );
+  const result = new Date(target - now);
+  const year = result.getFullYear() - 1970;
+  const mounth = result.getMonth() - 1;
+  const days = result.getDay();
+  const hours = result.getHours();
+  const minutes = result.getMinutes();
+  const seconds = result.getSeconds();
+ 
+  if (result.getTime() - new Date('Sun 1 February 1970 00:00:00').getTime() <= 0) {
+    console.log('Время истекло');
+    clearInterval(interval);
+  } else {
+     console.log(
+    `${year} лет, ${mounth} месяцев, ${days} дней, ${hours} часов, ${minutes} минут, ${seconds} секунд`,
+  );
+  }
+}, 1000);
