@@ -1,25 +1,40 @@
-const fs = require('fs')
-const readline = require('readline')
+const http = require('http');
+const path = require('path');
+const fs = require('fs');
 
-const readStream = fs.createReadStream('access.log', 'utf8')
-const writeStream1 = fs.createWriteStream('89.123.1.41_requests.log')
-const writeStream2 = fs.createWriteStream('34.48.240.111_requests.log')
+(async () => {
+    const isFile = (path) => fs.lstatSync(path).isFile();
 
-let numStr = 0
+    http.createServer( (req, res) => {
+        const fullPath = path.join(process.cwd(), req.url);
+        console.log(fullPath);
+        if (!fs.existsSync(fullPath)) return res.end('File or directory not found');
 
-const rl = readline.createInterface({
-    input: readStream,
-    terminal: true
-});
+        if (isFile(fullPath)) {
+            return fs.createReadStream(fullPath).pipe(res);
+        }
 
-rl.on('line', (line) => {
-    if (line.includes("89.123.1.41")) {
-        writeStream1.write(line + "\n")
-    }
+        let linksList = '';
 
-    if (line.includes("34.48.240.111")) {
-        writeStream2.write(line + "\n")
-    }
+        const urlParams = req.url.match(/[\d\w\.]+/gi);
 
-    console.log(++numStr)
-})
+        if (urlParams) {
+            urlParams.pop();
+            const prevUrl = urlParams.join('/');
+            linksList = urlParams.length ? `<li><a href="/${prevUrl}">..</a></li>` : '<li><a href="/">..</a></li>';
+        }
+
+        fs.readdirSync(fullPath)
+            .forEach(fileName => {
+                const filePath = path.join(req.url, fileName);
+                linksList += `<li><a href="${filePath}">${fileName}</a></li>`;
+            });
+        const HTML = fs
+            .readFileSync(path.join(__dirname, 'index.html'), 'utf-8')
+            .replace('##links', linksList);
+        res.writeHead(200, {
+            'Content-Type': 'text/html',
+        })
+        return res.end(HTML);
+    }).listen(5555);
+})();
