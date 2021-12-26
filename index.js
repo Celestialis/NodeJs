@@ -1,40 +1,72 @@
+const fs = require("fs");
+const path = require("path");
 const http = require('http');
-const path = require('path');
-const fs = require('fs');
+const url = require('url');
+const io = require('socket.io');
 
-(async () => {
-    const isFile = (path) => fs.lstatSync(path).isFile();
+const isFile = fileName => {
+    return fs.lstatSync(fileName).isFile();
+}
 
-    http.createServer( (req, res) => {
-        const fullPath = path.join(process.cwd(), req.url);
-        console.log(fullPath);
-        if (!fs.existsSync(fullPath)) return res.end('File or directory not found');
+const users = {};
 
-        if (isFile(fullPath)) {
-            return fs.createReadStream(fullPath).pipe(res);
-        }
+ const app = http.createServer((request, response) => {
+    if (request.method === 'GET') {
+        const filePath = path.join(__dirname, 'index.html');
+        readStream = fs.createReadStream(filePath);
+        readStream.pipe(response);
+    } else if (request.method === 'POST') {
+        let data = '';
 
-        let linksList = '';
+        request.on('data', chunk => {
+        data += chunk;
+        });
 
-        const urlParams = req.url.match(/[\d\w\.]+/gi);
+        request.on('end', () => {
+          const parsedData = JSON.parse(data);
+          console.log(parsedData);
 
-        if (urlParams) {
-            urlParams.pop();
-            const prevUrl = urlParams.join('/');
-            linksList = urlParams.length ? `<li><a href="/${prevUrl}">..</a></li>` : '<li><a href="/">..</a></li>';
-        }
+          response.writeHead(200, { 'Content-Type': 'json'});
+          response.end(data);
+        });
+      } else {
+          response.statusCode = 405;
+          response.end();
+      }
 
-        fs.readdirSync(fullPath)
-            .forEach(fileName => {
-                const filePath = path.join(req.url, fileName);
-                linksList += `<li><a href="${filePath}">${fileName}</a></li>`;
-            });
-        const HTML = fs
-            .readFileSync(path.join(__dirname, 'index.html'), 'utf-8')
-            .replace('##links', linksList);
-        res.writeHead(200, {
-            'Content-Type': 'text/html',
-        })
-        return res.end(HTML);
-    }).listen(5555);
-})();
+});
+
+const socket = io(app);
+
+socket.on('connection', function (socket) {
+  let userNickname = 'User' + Math.floor(Math.random() * 100)
+  users[socket.id] = userNickname;
+  socket.emit('SERVER_MSG', { msg: 'Hello ' + userNickname});
+
+  socket.on('CLIENT_MSG', (data) => {
+    userNickname = getUserNickName(socket.id);
+    socket.emit('SERVER_MSG', { msg: `${userNickname}: ${data.msg}`});
+    socket.broadcast.emit('SERVER_MSG', { msg: `${userNickname}: ${data.msg}`});
+  });
+
+  socket.broadcast.emit('NEW_CONN_EVENT', { msg: userNickname + ' connected' });
+
+  socket.on('disconnect', function() {
+    let disconnectedUserNickname = getUserNickName(socket.id);
+    socket.broadcast.emit('SERVER_MSG', { msg: disconnectedUserNickname + ' disconnected'});
+  });
+  socket.on('reconnect', function() {
+    let reconnectedUserNickname = getUserNickName(socket.id);
+    socket.broadcast.emit('SERVER_MSG', { msg: reconnectedUserNickname + ' reconnected'});
+  });
+
+});
+
+app.listen(3000, 'localhost');
+
+function getUserNickName(socketId) {
+  let userNickname = null;
+  for (let key of Object.keys(users)) {
+    if (key == socketId) return userNickname = users[key];
+  }
+}
